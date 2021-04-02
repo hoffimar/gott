@@ -2,13 +2,12 @@ package cmd
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
-	"path"
 	"sort"
 	"time"
 
+	"github.com/hoffimar/gott/core"
 	"github.com/hoffimar/gott/persistence"
 	"github.com/hoffimar/gott/types"
 	"github.com/spf13/cobra"
@@ -32,34 +31,8 @@ var addWorkingTimeCmd = &cobra.Command{
 	Short: "Add a working time (with start and end time) to the file.",
 	Long:  `TODO`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("workingtime add called")
 
-		os.MkdirAll(viper.GetString("StorageLocation"), 0700)
-
-		var file *os.File
-		var err error
-		filePath := path.Join(viper.GetString("StorageLocation"), "timerecording.json")
-		// Check for file existence
-		if _, err := os.Stat(filePath); os.IsNotExist(err) {
-			fmt.Printf("Creating file %s", filePath)
-
-			// fill file with initial array
-			content := []byte("[]")
-			ioutil.WriteFile(filePath, content, 0600)
-			if err != nil {
-				log.Fatal(err)
-			}
-		}
-
-		file, _ = os.OpenFile(filePath, os.O_RDWR, 0600)
-
-		// first get existing time recordings, then add the new one
-		times, err := persistence.GetWorkingTimes(path.Join(viper.GetString("StorageLocation"), "timerecording.json"))
-		if err != nil {
-			fmt.Println("Could not read existing times: ", err)
-		}
-
-		// parse times
+		// parse input times
 		startTime, err := getTimeFromInputString(startTimeString)
 		if err != nil {
 			fmt.Printf("start time parsing not possible: %s", err)
@@ -72,23 +45,24 @@ var addWorkingTimeCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		// TODO check that no existing time overlaps, present a warning
-		//inputInterval := types.WorkingInterval{Start: startTime, End: endTime, WorkBreak: breaktime}
 		inputInterval, err := types.NewWorkingInterval(startTime, endTime, breaktime)
 		if err != nil {
 			fmt.Print(err)
 			os.Exit(1)
 		}
 
-		times = append(times, *inputInterval)
+		var fileStore, _ = persistence.NewWorkingTimeFileStore(viper.GetString("StorageLocation"), "timerecording.json")
+		var workingTimeList, _ = core.NewWorkingTimeList(fileStore)
 
-		defer file.Close()
-		persistence.SaveWorkingTimes(file, times)
+		err = workingTimeList.AddWorkingTimeInterval(*inputInterval)
+		if err != nil {
+			log.Fatal("Error adding the working time: ", err)
+		}
 	},
 }
 
 func getTimeFromInputString(input string) (result time.Time, err error) {
-	result, err = time.Parse("2006-01-02-15:04", input)
+	result, err = time.ParseInLocation("2006-01-02-15:04", input, time.Local)
 	if err != nil {
 		var inputTime time.Time
 		inputTime, err = time.Parse("15:04", input)
@@ -110,9 +84,10 @@ var logWorkingTimesCmd = &cobra.Command{
 	Short: "Show a log of the times entered, sorted by date",
 	Long:  `TODO.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("workingtime log called")
+		var fileStore, _ = persistence.NewWorkingTimeFileStore(viper.GetString("StorageLocation"), "timerecording.json")
+		var workingTimeList, _ = core.NewWorkingTimeList(fileStore)
 
-		times, err := persistence.GetWorkingTimes(path.Join(viper.GetString("StorageLocation"), "timerecording.json"))
+		times, err := workingTimeList.GetWorkingTimeIntervals()
 		if err != nil {
 			fmt.Println("Error reading times: ", err)
 		}
@@ -130,7 +105,10 @@ var statsWorkingTimeCmd = &cobra.Command{
 	Short: "Get working time statistics",
 	Long:  `TODO.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		times, err := persistence.GetWorkingTimes(path.Join(viper.GetString("StorageLocation"), "timerecording.json"))
+		var fileStore, _ = persistence.NewWorkingTimeFileStore(viper.GetString("StorageLocation"), "timerecording.json")
+		var workingTimeList, _ = core.NewWorkingTimeList(fileStore)
+
+		times, err := workingTimeList.GetWorkingTimeIntervals()
 		if err != nil {
 			fmt.Println("Error reading times: ", err)
 		}

@@ -12,7 +12,7 @@ type WorkingInterval struct {
 }
 
 func NewWorkingInterval(start time.Time, end time.Time, workBreak time.Duration) (*WorkingInterval, error) {
-	if start.After(end) {
+	if !end.IsZero() && start.After(end) {
 		return &WorkingInterval{}, errors.New("End time must be after start time.")
 	}
 

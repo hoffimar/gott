@@ -61,3 +61,23 @@ func (fileStore WorkingTimeFileStore) GetWorkingTimes() (result []types.WorkingI
 
 	return result, nil
 }
+
+func (fileStore WorkingTimeFileStore) UpdateWorkingTime(oldInterval types.WorkingInterval, newInterval types.WorkingInterval) (err error) {
+	workingTimes, _ := fileStore.GetWorkingTimes()
+
+	for idx := range workingTimes {
+		element := &workingTimes[idx]
+		if element.Start == oldInterval.Start && element.End == oldInterval.End && element.WorkBreak == oldInterval.WorkBreak {
+			element.Start = newInterval.Start
+			element.End = newInterval.End
+			element.WorkBreak = newInterval.WorkBreak
+		}
+	}
+
+	bytes, err := json.Marshal(workingTimes)
+	if err != nil {
+		return err
+	}
+
+	return ioutil.WriteFile(fileStore.filePath, bytes, 0600)
+}

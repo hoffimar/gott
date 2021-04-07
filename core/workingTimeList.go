@@ -7,6 +7,8 @@ import (
 	"github.com/hoffimar/gott/types"
 )
 
+var ErrNoIntervalStarted = errors.New("No working interval started.")
+
 type WorkingTimeList struct {
 	persistence WorkingTimeReadAdder
 }
@@ -64,5 +66,5 @@ func (list *WorkingTimeList) GetStartedWorkingTimeInterval() (interval types.Wor
 		}
 	}
 
-	return types.WorkingInterval{}, errors.New("No started working time interval found.")
+	return types.WorkingInterval{}, ErrNoIntervalStarted
 }

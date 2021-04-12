@@ -41,7 +41,7 @@ func (fileStore WorkingTimeFileStore) AddWorkingTime(inputInterval types.Working
 	workingTimes, _ := fileStore.GetWorkingTimes()
 	workingTimes = append(workingTimes, inputInterval)
 
-	bytes, err := json.Marshal(workingTimes)
+	bytes, err := json.MarshalIndent(workingTimes, "", "  ")
 	if err != nil {
 		return err
 	}
@@ -74,7 +74,7 @@ func (fileStore WorkingTimeFileStore) UpdateWorkingTime(oldInterval types.Workin
 		}
 	}
 
-	bytes, err := json.Marshal(workingTimes)
+	bytes, err := json.MarshalIndent(workingTimes, "", "  ")
 	if err != nil {
 		return err
 	}

@@ -58,6 +58,7 @@ func initConfig() {
 		viper.SetConfigName(".gott.yaml")
 		viper.SetConfigType("yaml")
 		viper.SetDefault("StorageLocation", path.Join(home, "/.gott"))
+		viper.SetDefault("Editor", "vim")
 	}
 
 	viper.AutomaticEnv() // read in environment variables that match

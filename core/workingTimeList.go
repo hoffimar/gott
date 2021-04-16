@@ -2,6 +2,7 @@ package core
 
 import (
 	"errors"
+	"sort"
 	"time"
 
 	"github.com/hoffimar/gott/types"
@@ -67,4 +68,54 @@ func (list *WorkingTimeList) GetStartedWorkingTimeInterval() (interval types.Wor
 	}
 
 	return types.WorkingInterval{}, ErrNoIntervalStarted
+}
+
+type WorkingTimeStatsPerDay struct {
+	Total        time.Duration
+	TotalBalance time.Duration
+	StartTime    time.Time
+	EndTime      time.Time
+	// TODO add break duration
+}
+
+func (list *WorkingTimeList) GetWorkingTimeStatsPerDay(since time.Time, targetWorkingTime time.Duration) (result map[time.Time]*WorkingTimeStatsPerDay, totalBalance time.Duration, err error) {
+	times, err := list.GetWorkingTimeIntervals()
+	if err != nil {
+		return nil, 0, err
+	}
+
+	result = make(map[time.Time]*WorkingTimeStatsPerDay)
+
+	sort.Slice(times, func(i, j int) bool { return times[i].Start.Before(times[j].Start) })
+
+	for _, interval := range times {
+		// TODO filter working times here, should be moved to storage
+		if !interval.Start.Before(since) {
+
+			year, month, day := interval.Start.Date()
+			date := time.Date(year, month, day, 0, 0, 0, 0, time.Local)
+			total := interval.End.Sub(interval.Start) - interval.WorkBreak
+
+			element, found := result[date]
+			if found {
+				element.Total = element.Total + total
+				element.TotalBalance = element.TotalBalance + total
+				if interval.Start.Before(element.StartTime) {
+					element.StartTime = interval.Start
+				}
+				if interval.End.After(element.EndTime) {
+					element.EndTime = interval.End
+				}
+			} else {
+				result[date] = &WorkingTimeStatsPerDay{Total: total, TotalBalance: total - targetWorkingTime, StartTime: interval.Start, EndTime: interval.End}
+			}
+		}
+	}
+
+	// Calculate total balance
+	for _, v := range result {
+		totalBalance += v.TotalBalance
+	}
+
+	return result, totalBalance, nil
 }

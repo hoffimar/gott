@@ -100,35 +100,6 @@ var logWorkingTimesCmd = &cobra.Command{
 	},
 }
 
-var statsWorkingTimeCmd = &cobra.Command{
-	Use:   "stats",
-	Short: "Get working time statistics",
-	Long:  `TODO.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		var fileStore, _ = persistence.NewWorkingTimeFileStore(viper.GetString("StorageLocation"), "timerecording.json")
-		var workingTimeList, _ = core.NewWorkingTimeList(fileStore)
-
-		times, err := workingTimeList.GetWorkingTimeIntervals()
-		if err != nil {
-			fmt.Println("Error reading times: ", err)
-		}
-
-		sort.Slice(times, func(i, j int) bool { return times[i].Start.Before(times[j].Start) })
-
-		var totalBalance time.Duration
-		for _, interval := range times {
-			// filter working times here, should be moved to storage
-			if time.Since(interval.Start) < statsSinceDuration {
-				workingDayDuration, _ := time.ParseDuration("8h")
-				balance := interval.End.Sub(interval.Start) - interval.WorkBreak - workingDayDuration
-				totalBalance += balance
-				fmt.Printf("Start: %s, end: %s, break: %s, --- balance: %s\n", interval.Start, interval.End, interval.WorkBreak, balance)
-			}
-		}
-		fmt.Printf("TOTAL BALANCE: %s", totalBalance)
-	},
-}
-
 var (
 	breaktime          time.Duration
 	startTimeString    string
@@ -141,7 +112,6 @@ func init() {
 	rootCmd.AddCommand(workingtimeCmd)
 	workingtimeCmd.AddCommand(addWorkingTimeCmd)
 	workingtimeCmd.AddCommand(logWorkingTimesCmd)
-	workingtimeCmd.AddCommand(statsWorkingTimeCmd)
 
 	// Here you will define your flags and configuration settings.
 
@@ -155,7 +125,4 @@ func init() {
 	addWorkingTimeCmd.Flags().StringVarP(&startTimeString, "start", "s", "", "Start time of the working time interval")
 	addWorkingTimeCmd.Flags().StringVarP(&endTimeString, "end", "e", "", "End time of the working time interval")
 	addWorkingTimeCmd.Flags().DurationVarP(&breaktime, "break", "b", defaultDuration, "the break time")
-
-	defaultDurationStatsSince, _ := time.ParseDuration("1w")
-	statsWorkingTimeCmd.Flags().DurationVar(&statsSinceDuration, "since", defaultDurationStatsSince, "Duration from when to evaluate the statistics.")
 }

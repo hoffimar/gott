@@ -78,7 +78,7 @@ type WorkingTimeStatsPerDay struct {
 	// TODO add break duration
 }
 
-func (list *WorkingTimeList) GetWorkingTimeStatsPerDay(since time.Time, targetWorkingTime time.Duration) (result map[time.Time]*WorkingTimeStatsPerDay, totalBalance time.Duration, err error) {
+func (list *WorkingTimeList) GetWorkingTimeStatsPerDay(since time.Time, until time.Time, targetWorkingTime time.Duration) (result map[time.Time]*WorkingTimeStatsPerDay, totalBalance time.Duration, err error) {
 	times, err := list.GetWorkingTimeIntervals()
 	if err != nil {
 		return nil, 0, err
@@ -90,11 +90,17 @@ func (list *WorkingTimeList) GetWorkingTimeStatsPerDay(since time.Time, targetWo
 
 	for _, interval := range times {
 		// TODO filter working times here, should be moved to storage
+		// TODO filter times after 'until', limit the balance
 		if !interval.Start.Before(since) {
 
 			year, month, day := interval.Start.Date()
 			date := time.Date(year, month, day, 0, 0, 0, 0, time.Local)
-			total := interval.End.Sub(interval.Start) - interval.WorkBreak
+			var total time.Duration = 0
+			if interval.End.IsZero() {
+				total = until.Sub(interval.Start) - interval.WorkBreak
+			} else {
+				total = interval.End.Sub(interval.Start) - interval.WorkBreak
+			}
 
 			element, found := result[date]
 			if found {

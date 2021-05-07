@@ -22,8 +22,9 @@ var statsCmd = &cobra.Command{
 		var workingTimeList, _ = core.NewWorkingTimeList(fileStore)
 
 		workingDayDuration, _ := time.ParseDuration("8h")
+		now := time.Now()
 
-		statsPerDay, totalBalance, err := workingTimeList.GetWorkingTimeStatsPerDay(time.Now().Add(-statsSinceDuration), workingDayDuration)
+		statsPerDay, totalBalance, err := workingTimeList.GetWorkingTimeStatsPerDay(now.Add(-statsSinceDuration), now, workingDayDuration)
 		if err != nil {
 			log.Fatal(err)
 		}

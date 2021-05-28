@@ -1,12 +1,15 @@
 package core_test
 
 import (
+	"errors"
 	"testing"
 	"time"
 
 	"github.com/hoffimar/gott/core"
 	"github.com/hoffimar/gott/types"
 )
+
+var ErrNoIntervalFound = errors.New("No interval to update found.")
 
 type workingTimePersistenceMock struct {
 	intervals []types.WorkingInterval
@@ -22,7 +25,21 @@ func (persistence *workingTimePersistenceMock) AddWorkingTime(interval types.Wor
 }
 
 func (persistence *workingTimePersistenceMock) UpdateWorkingTime(oldInterval types.WorkingInterval, newInterval types.WorkingInterval) (err error) {
-	return nil
+	var found bool = false
+	for idx := range persistence.intervals {
+		element := &persistence.intervals[idx]
+		if element.Start == oldInterval.Start && element.End == oldInterval.End && element.WorkBreak == oldInterval.WorkBreak {
+			element.Start = newInterval.Start
+			element.End = newInterval.End
+			element.WorkBreak = newInterval.WorkBreak
+			found = true
+		}
+	}
+
+	if found {
+		return nil
+	}
+	return ErrNoIntervalFound
 }
 
 func TestStats(t *testing.T) {
@@ -47,7 +64,7 @@ func TestStats(t *testing.T) {
 		{
 			"Test negative balance",
 			[]types.WorkingInterval{*interval1},
-			time.Now().Add(-10 * time.Hour),
+			sevenPM.Add(-10 * time.Hour),
 			8 * time.Hour,
 			map[time.Time]*core.WorkingTimeStatsPerDay{
 				nowDate: {Total: 2 * time.Hour, TotalBalance: -6 * time.Hour, StartTime: interval1.Start, EndTime: interval1.End},
@@ -58,7 +75,7 @@ func TestStats(t *testing.T) {
 		{
 			"Test running interval",
 			[]types.WorkingInterval{*intervalWithoutEnd},
-			time.Now().Add(-10 * time.Hour),
+			sevenPM.Add(-10 * time.Hour),
 			8 * time.Hour,
 			map[time.Time]*core.WorkingTimeStatsPerDay{
 				nowDate: {Total: 5 * time.Hour, TotalBalance: -3 * time.Hour, StartTime: intervalWithoutEnd.Start, EndTime: intervalWithoutEnd.End},
@@ -102,5 +119,72 @@ func TestStats(t *testing.T) {
 				t.Errorf("Actual error %s, but expected %s", actualError, testcase.expectedErr)
 			}
 		})
+	}
+}
+
+func TestAddBreak(t *testing.T) {
+	date := time.Date(2021, 05, 28, 19, 0, 0, 0, time.Local)
+
+	intervalClosed, _ := types.NewWorkingInterval(date.Add(-8*time.Hour), date.Add(-6*time.Hour), 0)
+	intervalWithoutEnd, _ := types.NewWorkingInterval(date.Add(-5*time.Hour), time.Time{}, 0)
+
+	expectedInterval5minBreak, _ := types.NewWorkingInterval(intervalWithoutEnd.Start, time.Time{}, 5*time.Minute)
+
+	tests := []struct {
+		description      string
+		interval         types.WorkingInterval
+		breakTime        time.Duration
+		expectedInterval types.WorkingInterval
+		expectedErr      error
+	}{
+		{
+			"Test add break without being checked in",
+			*intervalClosed,
+			5 * time.Minute,
+			*intervalClosed,
+			core.ErrNoIntervalStarted,
+		},
+		{
+			"Test add break when being checked in",
+			*intervalWithoutEnd,
+			5 * time.Minute,
+			*expectedInterval5minBreak,
+			nil,
+		},
+	}
+
+	for _, testcase := range tests {
+		t.Run(testcase.description, func(t *testing.T) {
+
+			var persistenceMock = workingTimePersistenceMock{}
+			persistenceMock.AddWorkingTime(testcase.interval)
+			var workingTimeList, _ = core.NewWorkingTimeList(&persistenceMock)
+
+			actualError := workingTimeList.AddBreakTime(testcase.breakTime)
+			if actualError != testcase.expectedErr {
+				t.Errorf("Actual error %s != %s", actualError, testcase.expectedErr)
+			}
+
+			actualIntervals, _ := workingTimeList.GetWorkingTimeIntervals()
+			if len(actualIntervals) != 1 {
+				t.Errorf("Actual # of intervals is %d", len(actualIntervals))
+			}
+
+			assertInterval(t, testcase.expectedInterval, actualIntervals[0])
+		})
+	}
+}
+
+func assertInterval(t *testing.T, expected types.WorkingInterval, actual types.WorkingInterval) {
+	if expected.Start != actual.Start {
+		t.Errorf("Actual start time %s != expected start time %s", actual.Start, expected.Start)
+	}
+
+	if expected.End != actual.End {
+		t.Errorf("Actual end time %s != expected end time %s", actual.End, expected.End)
+	}
+
+	if expected.WorkBreak != actual.WorkBreak {
+		t.Errorf("Actual break time %s != expected break time %s", actual.WorkBreak, expected.WorkBreak)
 	}
 }

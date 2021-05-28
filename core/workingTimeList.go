@@ -49,6 +49,20 @@ func (list *WorkingTimeList) StopWorkingTimeInterval(stopTime time.Time) (err er
 	return list.persistence.UpdateWorkingTime(oldInterval, *newInterval)
 }
 
+func (list *WorkingTimeList) AddBreakTime(breakDuration time.Duration) (err error) {
+	currentInterval, err := list.GetStartedWorkingTimeInterval()
+	if err != nil {
+		return err
+	}
+
+	newInterval, err := types.NewWorkingInterval(currentInterval.Start, currentInterval.End, currentInterval.WorkBreak+breakDuration)
+	if err != nil {
+		return err
+	}
+
+	return list.persistence.UpdateWorkingTime(currentInterval, *newInterval)
+}
+
 func (list *WorkingTimeList) GetWorkingTimeIntervals() (workingTimes []types.WorkingInterval, err error) {
 	return list.persistence.GetWorkingTimes()
 }

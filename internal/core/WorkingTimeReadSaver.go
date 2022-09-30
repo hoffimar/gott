@@ -1,6 +1,6 @@
 package core
 
-import "github.com/hoffimar/gott/types"
+import "github.com/hoffimar/gott/internal/types"
 
 type WorkingTimeReadAdder interface {
 	GetWorkingTimes() (intervals []types.WorkingInterval, err error)

@@ -7,9 +7,9 @@ import (
 	"sort"
 	"time"
 
-	"github.com/hoffimar/gott/core"
-	"github.com/hoffimar/gott/persistence"
-	"github.com/hoffimar/gott/types"
+	"github.com/hoffimar/gott/internal/core"
+	"github.com/hoffimar/gott/internal/persistence"
+	"github.com/hoffimar/gott/internal/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

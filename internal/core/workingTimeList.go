@@ -5,7 +5,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/hoffimar/gott/types"
+	"github.com/hoffimar/gott/internal/types"
 )
 
 var ErrNoIntervalStarted = errors.New("No working interval started.")

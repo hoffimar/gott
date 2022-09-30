@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hoffimar/gott/core"
-	"github.com/hoffimar/gott/types"
+	"github.com/hoffimar/gott/internal/core"
+	"github.com/hoffimar/gott/internal/types"
 )
 
 var ErrNoIntervalFound = errors.New("No interval to update found.")

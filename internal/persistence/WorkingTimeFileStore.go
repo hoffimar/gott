@@ -8,7 +8,7 @@ import (
 	"os"
 	"path"
 
-	"github.com/hoffimar/gott/types"
+	"github.com/hoffimar/gott/internal/types"
 )
 
 type WorkingTimeFileStore struct {

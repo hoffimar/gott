@@ -8,6 +8,23 @@ on:
 
 jobs:
 
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.19
+      - name: Check out source code
+        uses: actions/checkout@v3
+      - name: Format Check
+        run: test -z "$(gofmt -l .)"
+      - name: Test
+        run: go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage.out
   build:
     runs-on: ubuntu-latest
     steps:
